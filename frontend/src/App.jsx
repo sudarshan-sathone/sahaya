@@ -9,6 +9,7 @@ import DonorTab from "./components/DonorTab.jsx";
 import NGOWorkerTab from "./components/NGOWorkerTab.jsx";
 import VendorTab from "./components/VendorTab.jsx";
 import TransparencyTab from "./components/TransparencyTab.jsx";
+import CollapsibleSection from "./components/CollapsibleSection.jsx";
 
 const TABS = ["Admin", "Donor", "NGO Worker", "Vendor", "Transparency"];
 
@@ -81,11 +82,41 @@ export default function App() {
       <main className="tab-content">
         {activeTab === "Admin" && (
           <>
-            <AdminDashboard contract={contract} account={account} />
-            <CampaignManager contract={contract} account={account} />
-            <NGOManager contract={contract} account={account} />
-            <BeneficiaryManager contract={contract} account={account} />
-            <TransactionMonitor contract={contract} account={account} />
+            <CollapsibleSection
+              title="Admin Dashboard"
+              subtitle="Live stats + campaign health"
+              defaultOpen={true}
+            >
+              <AdminDashboard contract={contract} account={account} />
+            </CollapsibleSection>
+
+            <CollapsibleSection
+              title="Campaign Management"
+              subtitle="Create, verify, and close campaigns"
+            >
+              <CampaignManager contract={contract} account={account} />
+            </CollapsibleSection>
+
+            <CollapsibleSection
+              title="NGO Management"
+              subtitle="Register, activate/suspend, and monitor NGOs"
+            >
+              <NGOManager contract={contract} account={account} />
+            </CollapsibleSection>
+
+            <CollapsibleSection
+              title="Beneficiary + OTP"
+              subtitle="Register, approve, issue OTP, whitelist vendor"
+            >
+              <BeneficiaryManager contract={contract} account={account} />
+            </CollapsibleSection>
+
+            <CollapsibleSection
+              title="Transaction Monitor"
+              subtitle="Auto-refresh monitoring + suspicious flags"
+            >
+              <TransactionMonitor contract={contract} account={account} />
+            </CollapsibleSection>
           </>
         )}
         {activeTab === "Donor" && (

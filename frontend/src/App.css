@@ -145,6 +145,46 @@ body {
   align-items: center;
 }
 
+.collapse-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.collapse-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.collapse-title {
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.collapse-subtitle {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.collapse-icon {
+  color: var(--color-muted);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.collapse-body {
+  margin-top: 0.75rem;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
