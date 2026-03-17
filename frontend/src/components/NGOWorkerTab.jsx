@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
+import { NGO_STATUS } from "../constants/index.js";
 
 export default function NGOWorkerTab({ contract, account }) {
   const [campaignId, setCampaignId] = useState("");
@@ -9,6 +10,29 @@ export default function NGOWorkerTab({ contract, account }) {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const [activity, setActivity] = useState(null);
+  const [ngoProfile, setNgoProfile] = useState(null);
+
+  const loadNgoProfile = async () => {
+    if (!contract || !account) {
+      setNgoProfile(null);
+      return;
+    }
+    try {
+      const ngo = await contract.getNGO(account);
+      if (ngo.exists) {
+        setNgoProfile({
+          exists: true,
+          name: ngo.name,
+          status: Number(ngo.status)
+        });
+      } else {
+        setNgoProfile({ exists: false });
+      }
+    } catch (e) {
+      console.error(e);
+      setNgoProfile(null);
+    }
+  };
 
   const loadActivity = async () => {
     if (!contract || !account) return;
@@ -26,6 +50,7 @@ export default function NGOWorkerTab({ contract, account }) {
   };
 
   useEffect(() => {
+    loadNgoProfile();
     loadActivity();
   }, [contract, account]);
 
@@ -33,6 +58,18 @@ export default function NGOWorkerTab({ contract, account }) {
     e.preventDefault();
     if (!contract) {
       setError("Connect as NGO wallet first.");
+      return;
+    }
+    if (ngoProfile && ngoProfile.exists === false) {
+      setError(
+        "This wallet is not registered as an NGO. Ask admin to register and activate this wallet in NGO Management."
+      );
+      return;
+    }
+    if (ngoProfile && ngoProfile.exists && ngoProfile.status !== 1) {
+      setError(
+        `Your NGO status is ${NGO_STATUS[ngoProfile.status]}. It must be Active to register beneficiaries.`
+      );
       return;
     }
     try {
@@ -71,6 +108,16 @@ export default function NGOWorkerTab({ contract, account }) {
         <p className="muted-text">
           Connected NGO wallet: {account.slice(0, 6)}...{account.slice(-4)}
         </p>
+      )}
+
+      {ngoProfile && (
+        <div className="alert alert-warning small">
+          {ngoProfile.exists
+            ? `NGO: ${ngoProfile.name || "(unnamed)"} — Status: ${
+                NGO_STATUS[ngoProfile.status] || "Unknown"
+              }`
+            : "This wallet is not registered as an NGO."}
+        </div>
       )}
 
       {error && <div className="alert alert-error">{error}</div>}
