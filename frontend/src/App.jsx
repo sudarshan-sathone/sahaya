@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useContract } from "./hooks/useContract.js";
-import AdminDashboard from "./components/AdminDashboard.jsx";
 import CampaignManager from "./components/CampaignManager.jsx";
 import NGOManager from "./components/NGOManager.jsx";
 import BeneficiaryManager from "./components/BeneficiaryManager.jsx";
@@ -9,9 +8,11 @@ import DonorTab from "./components/DonorTab.jsx";
 import NGOWorkerTab from "./components/NGOWorkerTab.jsx";
 import VendorTab from "./components/VendorTab.jsx";
 import TransparencyTab from "./components/TransparencyTab.jsx";
+import AdminDashboard from "./components/dashboard/AdminDashboard.jsx";
+import "./styles/dashboard.css";
 import CollapsibleSection from "./components/CollapsibleSection.jsx";
 
-const TABS = ["Admin", "Donor", "NGO Worker", "Vendor", "Transparency"];
+const TABS = ["Dashboard", "Admin", "Donor", "NGO Worker", "Vendor", "Transparency"];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("Admin");
@@ -80,19 +81,19 @@ export default function App() {
       </nav>
 
       <main className="tab-content">
+        {activeTab === "Dashboard" && (
+          <AdminDashboard
+            contract={contract}
+            account={account}
+            network={network}
+          />
+        )}
         {activeTab === "Admin" && (
           <>
             <CollapsibleSection
-              title="Admin Dashboard"
-              subtitle="Live stats + campaign health"
-              defaultOpen={true}
-            >
-              <AdminDashboard contract={contract} account={account} />
-            </CollapsibleSection>
-
-            <CollapsibleSection
               title="Campaign Management"
               subtitle="Create, verify, and close campaigns"
+              defaultOpen={true}
             >
               <CampaignManager contract={contract} account={account} />
             </CollapsibleSection>
@@ -112,8 +113,8 @@ export default function App() {
             </CollapsibleSection>
 
             <CollapsibleSection
-              title="Transaction Monitor"
-              subtitle="Auto-refresh monitoring + suspicious flags"
+              title="Transaction Monitor (Quick)"
+              subtitle="Fast list for debugging flows"
             >
               <TransactionMonitor contract={contract} account={account} />
             </CollapsibleSection>

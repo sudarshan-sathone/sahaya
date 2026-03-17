@@ -6,6 +6,7 @@ import {
   CAMPAIGN_STATUS,
   CAMPAIGN_STATUS_COLORS
 } from "../constants/index.js";
+import DonorActivity from "./dashboard/DonorActivity.jsx";
 
 export default function DonorTab({ contract, account }) {
   const [campaigns, setCampaigns] = useState([]);
@@ -66,16 +67,17 @@ export default function DonorTab({ contract, account }) {
   }
 
   return (
-    <section className="card">
-      <h2>Donor</h2>
-      {account && (
-        <p className="muted-text">
-          Donor wallet: {account.slice(0, 6)}...{account.slice(-4)}
-        </p>
-      )}
-      {error && <div className="alert alert-error">{error}</div>}
-      <div className="campaign-grid">
-        {campaigns.map((c) => {
+    <>
+      <section className="card">
+        <h2>Donor</h2>
+        {account && (
+          <p className="muted-text">
+            Donor wallet: {account.slice(0, 6)}...{account.slice(-4)}
+          </p>
+        )}
+        {error && <div className="alert alert-error">{error}</div>}
+        <div className="campaign-grid">
+          {campaigns.map((c) => {
           const id = Number(c.id);
           const disaster = DISASTER_TYPES[Number(c.disasterType)] || "Unknown";
           const disasterColor = DISASTER_COLORS[disaster] || "#888";
@@ -157,12 +159,15 @@ export default function DonorTab({ contract, account }) {
               </div>
             </div>
           );
-        })}
-        {campaigns.length === 0 && (
-          <div className="muted-text">No active campaigns available.</div>
-        )}
-      </div>
-    </section>
+          })}
+          {campaigns.length === 0 && (
+            <div className="muted-text">No active campaigns available.</div>
+          )}
+        </div>
+      </section>
+
+      <DonorActivity contract={contract} account={account} />
+    </>
   );
 }
 
