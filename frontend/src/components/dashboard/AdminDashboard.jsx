@@ -1,7 +1,9 @@
+import { useState } from "react";
 import StatsBar from "./StatsBar.jsx";
 import CampaignControl from "./CampaignControl.jsx";
 import NGORegulator from "./NGORegulator.jsx";
 import TransactionMonitor from "./TransactionMonitor.jsx";
+import DataVisuals from "./DataVisuals.jsx";
 
 function truncate(addr) {
   if (!addr) return "—";
@@ -9,6 +11,8 @@ function truncate(addr) {
 }
 
 export default function AdminDashboard({ contract, account, network }) {
+  const [tab, setTab] = useState("Overview");
+
   return (
     <div className="dashboard-shell">
       <div className="dash-header">
@@ -32,18 +36,33 @@ export default function AdminDashboard({ contract, account, network }) {
         </div>
       </div>
 
-      <StatsBar contract={contract} />
-
-      <div className="dash-two-col">
-        <div>
-          <CampaignControl contract={contract} account={account} />
-        </div>
-        <div>
-          <NGORegulator contract={contract} account={account} />
-        </div>
+      <div className="dash-internal-tabs">
+        {["Overview", "Campaigns", "NGOs", "Transactions"].map((t) => (
+          <button
+            key={t}
+            type="button"
+            className={`dash-internal-tab ${tab === t ? "active" : ""}`}
+            onClick={() => setTab(t)}
+          >
+            {t}
+          </button>
+        ))}
       </div>
 
-      <TransactionMonitor contract={contract} account={account} />
+      {tab === "Overview" && (
+        <>
+          <StatsBar contract={contract} />
+          <DataVisuals contract={contract} />
+        </>
+      )}
+
+      {tab === "Campaigns" && <CampaignControl contract={contract} account={account} />}
+
+      {tab === "NGOs" && <NGORegulator contract={contract} account={account} />}
+
+      {tab === "Transactions" && (
+        <TransactionMonitor contract={contract} account={account} />
+      )}
     </div>
   );
 }

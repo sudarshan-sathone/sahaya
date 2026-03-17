@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
+import toast from "react-hot-toast";
 import { NGO_STATUS } from "../constants/index.js";
 
 export default function NGOWorkerTab({ contract, account }) {
@@ -7,8 +8,6 @@ export default function NGOWorkerTab({ contract, account }) {
   const [aadhaar, setAadhaar] = useState("");
   const [pincode, setPincode] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null);
-  const [error, setError] = useState(null);
   const [activity, setActivity] = useState(null);
   const [ngoProfile, setNgoProfile] = useState(null);
 
@@ -57,25 +56,24 @@ export default function NGOWorkerTab({ contract, account }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!contract) {
-      setError("Connect as NGO wallet first.");
+      toast.error("Please connect your wallet first");
       return;
     }
     if (ngoProfile && ngoProfile.exists === false) {
-      setError(
+      toast.error(
         "This wallet is not registered as an NGO. Ask admin to register and activate this wallet in NGO Management."
       );
       return;
     }
     if (ngoProfile && ngoProfile.exists && ngoProfile.status !== 1) {
-      setError(
+      toast.error(
         `Your NGO status is ${NGO_STATUS[ngoProfile.status]}. It must be Active to register beneficiaries.`
       );
       return;
     }
     try {
       setLoading(true);
-      setError(null);
-      setMessage(null);
+      const toastId = toast.loading("Waiting for confirmation...");
       const hash = ethers.keccak256(ethers.toUtf8Bytes(aadhaar));
       const tx = await contract.registerBeneficiary(
         Number(campaignId),
@@ -83,18 +81,30 @@ export default function NGOWorkerTab({ contract, account }) {
         pincode
       );
       const receipt = await tx.wait();
-      setMessage(
-        `Registered beneficiary. Tx ${receipt.hash.slice(
-          0,
-          10
-        )}... Ask admin for beneficiary index from getBeneficiaries().`
-      );
+
+      const ev = receipt.logs
+        .map((log) => {
+          try {
+            return contract.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find((p) => p && p.name === "BeneficiaryRegistered");
+
+      const idx = ev ? Number(ev.args.beneficiaryIndex) : null;
+      toast.success(`Beneficiary registered at index [${idx ?? "X"}].`, {
+        id: toastId
+      });
       setAadhaar("");
       setPincode("");
       await loadActivity();
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to register beneficiary");
+      const message = e?.reason || e?.message || "Transaction failed";
+      toast.error(
+        message.length > 80 ? message.slice(0, 80) + "..." : message
+      );
     } finally {
       setLoading(false);
     }
@@ -119,9 +129,6 @@ export default function NGOWorkerTab({ contract, account }) {
             : "This wallet is not registered as an NGO."}
         </div>
       )}
-
-      {error && <div className="alert alert-error">{error}</div>}
-      {message && <div className="alert alert-success">{message}</div>}
 
       <form onSubmit={handleSubmit} className="form-grid">
         <div className="form-row">

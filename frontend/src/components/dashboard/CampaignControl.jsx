@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
+import toast from "react-hot-toast";
 import {
   DISASTER_TYPES,
   DISASTER_COLORS,
@@ -31,19 +32,17 @@ function formatTs(ts) {
 export default function CampaignControl({ contract }) {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState({});
 
   const load = async () => {
     if (!contract) return;
     try {
-      setError(null);
       setLoading(true);
       const all = await contract.getAllCampaigns();
       setCampaigns(all);
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to load campaigns");
+      toast.error("Failed to load data. Check your connection.");
     } finally {
       setLoading(false);
     }
@@ -92,15 +91,28 @@ export default function CampaignControl({ contract }) {
 
   const runAction = async (id, kind, fn) => {
     if (!contract) return;
+    const toastId = toast.loading("Waiting for confirmation...");
     try {
       setActionLoading((m) => ({ ...m, [`${kind}-${id}`]: true }));
-      setError(null);
       const tx = await fn();
       await tx.wait();
+      if (kind === "verify") {
+        toast.success("Campaign verified and now active for donations.", {
+          id: toastId
+        });
+      } else if (kind === "flag") {
+        toast.success("Campaign flagged for suspicious activity.", { id: toastId });
+      } else {
+        toast.success("Action completed successfully!", { id: toastId });
+      }
       await load();
     } catch (e) {
       console.error(e);
-      setError(e.message || "Action failed");
+      const message = e?.reason || e?.message || "Transaction failed";
+      toast.error(
+        message.length > 80 ? message.slice(0, 80) + "..." : message,
+        { id: toastId }
+      );
     } finally {
       setActionLoading((m) => ({ ...m, [`${kind}-${id}`]: false }));
     }
@@ -120,15 +132,6 @@ export default function CampaignControl({ contract }) {
           <div>
             <div className="skeleton" style={{ height: 14, width: 220 }} />
             <div className="skeleton" style={{ height: 220, marginTop: 12 }} />
-          </div>
-        )}
-
-        {error && !loading && (
-          <div className="alert-card alert-card-amber">
-            <div>
-              <div className="alert-title">Campaign load issue</div>
-              <div className="alert-desc">{error}</div>
-            </div>
           </div>
         )}
 

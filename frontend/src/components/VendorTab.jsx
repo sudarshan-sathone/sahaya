@@ -1,34 +1,31 @@
 import { useState } from "react";
-import { ethers } from "ethers";
+import toast from "react-hot-toast";
 
 export default function VendorTab({ contract, account }) {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null);
-  const [error, setError] = useState(null);
 
   const handleRedeem = async (e) => {
     e.preventDefault();
     if (!contract) {
-      setError("Connect as vendor wallet first.");
+      toast.error("Please connect your wallet first");
       return;
     }
     try {
       setLoading(true);
-      setError(null);
-      setMessage(null);
+      const toastId = toast.loading("Waiting for confirmation...");
       const tx = await contract.redeemOTP(Number(otp));
-      const receipt = await tx.wait();
-      setMessage(
-        `OTP redeemed. Tx ${receipt.hash.slice(
-          0,
-          10
-        )}... Check wallet balance for received ETH.`
-      );
+      await tx.wait();
+      toast.success("OTP redeemed. Funds transferred to vendor wallet.", {
+        id: toastId
+      });
       setOtp("");
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to redeem OTP");
+      const message = e?.reason || e?.message || "Transaction failed";
+      toast.error(
+        message.length > 80 ? message.slice(0, 80) + "..." : message
+      );
     } finally {
       setLoading(false);
     }
@@ -42,8 +39,6 @@ export default function VendorTab({ contract, account }) {
           Vendor wallet: {account.slice(0, 6)}...{account.slice(-4)}
         </p>
       )}
-      {error && <div className="alert alert-error">{error}</div>}
-      {message && <div className="alert alert-success">{message}</div>}
 
       <form onSubmit={handleRedeem} className="form-grid">
         <div className="form-row">

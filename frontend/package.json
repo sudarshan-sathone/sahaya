@@ -8,13 +8,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "ethers": "^6.0.0",
     "react": "latest",
     "react-dom": "latest",
-    "ethers": "^6.0.0",
+    "react-hot-toast": "^2.6.0",
     "recharts": "latest"
   },
   "devDependencies": {
-    "vite": "latest",
-    "@vitejs/plugin-react": "latest"
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest"
   }
 }

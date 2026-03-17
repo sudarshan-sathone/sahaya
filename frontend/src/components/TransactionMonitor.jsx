@@ -1,18 +1,17 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
+import toast from "react-hot-toast";
 
 export default function TransactionMonitor({ contract }) {
   const [campaignId, setCampaignId] = useState("");
   const [transactions, setTransactions] = useState([]);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   const loadTransactions = async () => {
     if (!contract) return;
     try {
       setLoading(true);
-      setError(null);
       let txs;
       if (campaignId) {
         txs = await contract.getCampaignTransactions(Number(campaignId));
@@ -22,7 +21,7 @@ export default function TransactionMonitor({ contract }) {
       setTransactions(txs);
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to load transactions");
+      toast.error("Failed to load data. Check your connection.");
     } finally {
       setLoading(false);
     }
@@ -139,8 +138,6 @@ export default function TransactionMonitor({ contract }) {
   return (
     <section className="card">
       <h2>Transaction Monitor</h2>
-
-      {error && <div className="alert alert-error">{error}</div>}
 
       <div className="controls-row">
         <div className="form-row">

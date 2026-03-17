@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
+import toast from "react-hot-toast";
 import {
   DISASTER_TYPES,
   DISASTER_COLORS,
@@ -12,9 +13,9 @@ export default function CampaignManager({ contract }) {
   const [targetEth, setTargetEth] = useState("");
   const [expiryDays, setExpiryDays] = useState(30);
   const [documentHash, setDocumentHash] = useState("");
+  const [description, setDescription] = useState("");
+  const [imageURL, setImageURL] = useState("");
   const [creating, setCreating] = useState(false);
-  const [message, setMessage] = useState(null);
-  const [error, setError] = useState(null);
 
   const [campaigns, setCampaigns] = useState([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
@@ -27,7 +28,7 @@ export default function CampaignManager({ contract }) {
       setCampaigns(all);
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to load campaigns");
+      toast.error("Failed to load data. Check your connection.");
     } finally {
       setLoadingCampaigns(false);
     }
@@ -40,20 +41,25 @@ export default function CampaignManager({ contract }) {
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!contract) {
-      setError("Connect as admin first.");
+      toast.error("Please connect your wallet first");
+      return;
+    }
+    if (!name.trim()) {
+      toast.error("Campaign name is required");
       return;
     }
     try {
       setCreating(true);
-      setError(null);
-      setMessage(null);
+      const toastId = toast.loading("Waiting for confirmation...");
 
       const tx = await contract.createCampaign(
         name,
         Number(disasterType),
         ethers.parseEther(targetEth || "0"),
         Number(expiryDays),
-        documentHash
+        documentHash,
+        description,
+        imageURL
       );
       const receipt = await tx.wait();
 
@@ -68,23 +74,23 @@ export default function CampaignManager({ contract }) {
         .find((ev) => ev && ev.name === "CampaignCreated");
 
       const id = createdEvent ? Number(createdEvent.args.id) : null;
-      const txHash = receipt.hash;
-
-      setMessage(
-        `Campaign created with ID ${id ?? "(unknown)"} - tx ${txHash.slice(
-          0,
-          10
-        )}...`
-      );
+      toast.success("Campaign created successfully! Awaiting verification.", {
+        id: toastId
+      });
       setName("");
       setTargetEth("");
       setExpiryDays(30);
       setDocumentHash("");
+      setDescription("");
+      setImageURL("");
 
       await loadCampaigns();
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to create campaign");
+      const message = e?.reason || e?.message || "Transaction failed";
+      toast.error(
+        message.length > 80 ? message.slice(0, 80) + "..." : message
+      );
     } finally {
       setCreating(false);
     }
@@ -92,18 +98,21 @@ export default function CampaignManager({ contract }) {
 
   const handleVerify = async (id) => {
     if (!contract) return;
+    const toastId = toast.loading("Waiting for confirmation...");
     try {
       setCreating(true);
-      setError(null);
       const tx = await contract.verifyCampaign(id);
-      const receipt = await tx.wait();
-      setMessage(
-        `Campaign ${id} verified. Tx ${receipt.hash.slice(0, 10)}...`
-      );
+      await tx.wait();
+      toast.success("Campaign verified and now active for donations.", {
+        id: toastId
+      });
       await loadCampaigns();
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to verify campaign");
+      const message = e?.reason || e?.message || "Transaction failed";
+      toast.error(message.length > 80 ? message.slice(0, 80) + "..." : message, {
+        id: toastId
+      });
     } finally {
       setCreating(false);
     }
@@ -113,19 +122,17 @@ export default function CampaignManager({ contract }) {
     if (!contract) return;
     try {
       setCreating(true);
-      setError(null);
+      const toastId = toast.loading("Waiting for confirmation...");
       const tx = await contract.withdrawExpiredFunds(id);
-      const receipt = await tx.wait();
-      setMessage(
-        `Withdrawn expired funds for campaign ${id}. Tx ${receipt.hash.slice(
-          0,
-          10
-        )}...`
-      );
+      await tx.wait();
+      toast.success("Action completed successfully!", { id: toastId });
       await loadCampaigns();
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to withdraw funds");
+      const message = e?.reason || e?.message || "Transaction failed";
+      toast.error(
+        message.length > 80 ? message.slice(0, 80) + "..." : message
+      );
     } finally {
       setCreating(false);
     }
@@ -137,9 +144,6 @@ export default function CampaignManager({ contract }) {
   return (
     <section className="card">
       <h2>Campaign Management</h2>
-
-      {error && <div className="alert alert-error">{error}</div>}
-      {message && <div className="alert alert-success">{message}</div>}
 
       <form className="form-grid" onSubmit={handleCreate}>
         <div className="form-row">
@@ -190,6 +194,24 @@ export default function CampaignManager({ contract }) {
             value={documentHash}
             onChange={(e) => setDocumentHash(e.target.value)}
             required
+          />
+        </div>
+        <div className="form-row" style={{ gridColumn: "1 / -1" }}>
+          <label>Description</label>
+          <textarea
+            rows={4}
+            placeholder="Describe the disaster and how funds will be used"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            style={{ width: "100%" }}
+          />
+        </div>
+        <div className="form-row" style={{ gridColumn: "1 / -1" }}>
+          <label>Image URL</label>
+          <input
+            value={imageURL}
+            onChange={(e) => setImageURL(e.target.value)}
+            placeholder="Paste any image URL"
           />
         </div>
         <button className="primary-button" disabled={creating}>

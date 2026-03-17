@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { NGO_STATUS } from "../../constants/index.js";
 
 function truncate(addr) {
@@ -37,8 +38,6 @@ export default function NGORegulator({ contract }) {
     registrationNumber: ""
   });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
   const [ngos, setNgos] = useState([]);
   const [statusLoading, setStatusLoading] = useState({});
 
@@ -46,8 +45,6 @@ export default function NGORegulator({ contract }) {
     if (!contract) return;
     try {
       setLoading(true);
-      setError(null);
-      setSuccess(null);
 
       const count = await contract.ngoCount();
       const total = Number(count);
@@ -62,7 +59,7 @@ export default function NGORegulator({ contract }) {
       setNgos(list);
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to load NGOs");
+      toast.error("Failed to load data. Check your connection.");
     } finally {
       setLoading(false);
     }
@@ -77,20 +74,25 @@ export default function NGORegulator({ contract }) {
     e.preventDefault();
     if (!contract) return;
     try {
-      setError(null);
-      setSuccess(null);
+      const toastId = toast.loading("Waiting for confirmation...");
       const tx = await contract.registerNGO(
         registerForm.wallet,
         registerForm.name,
         registerForm.registrationNumber
       );
-      const receipt = await tx.wait();
-      setSuccess(`NGO registered. Tx ${receipt.hash.slice(0, 10)}...`);
+      await tx.wait();
+      toast.success(
+        "NGO registered. Activate them to allow victim registration.",
+        { id: toastId }
+      );
       setRegisterForm({ wallet: "", name: "", registrationNumber: "" });
       await load();
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to register NGO");
+      const message = e?.reason || e?.message || "Transaction failed";
+      toast.error(
+        message.length > 80 ? message.slice(0, 80) + "..." : message
+      );
     }
   };
 
@@ -98,13 +100,25 @@ export default function NGORegulator({ contract }) {
     if (!contract) return;
     try {
       setStatusLoading((m) => ({ ...m, [wallet]: true }));
-      setError(null);
+      const toastId = toast.loading("Waiting for confirmation...");
       const tx = await contract.updateNGOStatus(wallet, status);
       await tx.wait();
+      if (status === 1) {
+        toast.success("NGO activated successfully.", { id: toastId });
+      } else if (status === 2) {
+        toast.success("NGO suspended. They can no longer register victims.", {
+          id: toastId
+        });
+      } else {
+        toast.success("Action completed successfully!", { id: toastId });
+      }
       await load();
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to update NGO status");
+      const message = e?.reason || e?.message || "Transaction failed";
+      toast.error(
+        message.length > 80 ? message.slice(0, 80) + "..." : message
+      );
     } finally {
       setStatusLoading((m) => ({ ...m, [wallet]: false }));
     }
@@ -161,23 +175,6 @@ export default function NGORegulator({ contract }) {
             Refresh
           </button>
         </div>
-
-        {error && (
-          <div className="alert-card alert-card-amber">
-            <div>
-              <div className="alert-title">Action error</div>
-              <div className="alert-desc">{error}</div>
-            </div>
-          </div>
-        )}
-        {success && (
-          <div className="alert-card alert-card-green">
-            <div>
-              <div className="alert-title">Success</div>
-              <div className="alert-desc">{success}</div>
-            </div>
-          </div>
-        )}
 
         <form
           onSubmit={onRegister}

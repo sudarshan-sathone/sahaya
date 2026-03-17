@@ -10,9 +10,19 @@ import VendorTab from "./components/VendorTab.jsx";
 import TransparencyTab from "./components/TransparencyTab.jsx";
 import AdminDashboard from "./components/dashboard/AdminDashboard.jsx";
 import "./styles/dashboard.css";
+import "./styles/campaigns.css";
 import CollapsibleSection from "./components/CollapsibleSection.jsx";
+import CampaignExplorer from "./components/campaigns/CampaignExplorer.jsx";
 
-const TABS = ["Dashboard", "Admin", "Donor", "NGO Worker", "Vendor", "Transparency"];
+const TABS = [
+  "Dashboard",
+  "Campaigns",
+  "Admin",
+  "Donor",
+  "NGO Worker",
+  "Vendor",
+  "Transparency"
+];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("Admin");
@@ -87,6 +97,9 @@ export default function App() {
             account={account}
             network={network}
           />
+        )}
+        {activeTab === "Campaigns" && (
+          <CampaignExplorer contract={contract} account={account} />
         )}
         {activeTab === "Admin" && (
           <>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
+import toast from "react-hot-toast";
 
 function rateColor(rate) {
   if (rate > 60) return "var(--green)";
@@ -9,14 +10,12 @@ function rateColor(rate) {
 
 export default function StatsBar({ contract }) {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [data, setData] = useState(null);
   const [lastRefreshed, setLastRefreshed] = useState(null);
 
   const fetchStats = async () => {
     if (!contract) return;
     try {
-      setError(null);
       const [stats, balance] = await Promise.all([
         contract.getAllCampaignStats(),
         contract.getContractBalance()
@@ -41,7 +40,7 @@ export default function StatsBar({ contract }) {
       setLastRefreshed(new Date());
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to load stats");
+      toast.error("Failed to load data. Check your connection.");
     } finally {
       setLoading(false);
     }
@@ -99,15 +98,6 @@ export default function StatsBar({ contract }) {
 
   return (
     <div className="stats-bar">
-      {error && (
-        <div className="alert-card alert-card-amber" style={{ width: "100%" }}>
-          <div>
-            <div className="alert-title">Stats unavailable</div>
-            <div className="alert-desc">{error}</div>
-          </div>
-        </div>
-      )}
-
       <div className="stat-card">
         <div className="stat-label">Contract Balance</div>
         <div className="stat-value">

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
+import toast from "react-hot-toast";
 import { DISASTER_TYPES, DISASTER_COLORS, CAMPAIGN_STATUS, CAMPAIGN_STATUS_COLORS } from "../../constants/index.js";
 
 function truncate(addr) {
@@ -17,13 +18,11 @@ export default function DonorActivity({ contract, account }) {
   const [txs, setTxs] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   const load = async () => {
     if (!contract || !account) return;
     try {
       setLoading(true);
-      setError(null);
       const [allTx, allCampaigns] = await Promise.all([
         contract.getAllTransactions(),
         contract.getAllCampaigns()
@@ -32,7 +31,7 @@ export default function DonorActivity({ contract, account }) {
       setCampaigns(allCampaigns);
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to load donor activity");
+      toast.error("Failed to load data. Check your connection.");
     } finally {
       setLoading(false);
     }
@@ -50,15 +49,34 @@ export default function DonorActivity({ contract, account }) {
     );
   }, [txs, account]);
 
+  const myTxDonationsOnly = useMemo(() => {
+    const only = myTx
+      .filter((tx) => tx.actionType && tx.actionType.includes("Donation"))
+      .concat(
+        myTx.filter(
+          (tx) => (tx.actionType || "").toLowerCase() === "donation"
+        )
+      )
+      .filter((t) => t && (t.actionType || "").toLowerCase().includes("donation"));
+
+    const seen = new Set();
+    return only.filter((t) => {
+      const id = Number(t.id);
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }, [myTx]);
+
   const byCampaign = useMemo(() => {
     const map = new Map();
-    for (const t of myTx) {
+    for (const t of myTxDonationsOnly) {
       const cid = Number(t.campaignId);
       if (!map.has(cid)) map.set(cid, []);
       map.get(cid).push(t);
     }
     return map;
-  }, [myTx]);
+  }, [myTxDonationsOnly]);
 
   const campaignById = useMemo(() => {
     const map = new Map();
@@ -66,7 +84,13 @@ export default function DonorActivity({ contract, account }) {
     return map;
   }, [campaigns]);
 
-  const myDonations = useMemo(() => myTx.filter((t) => t.actionType === "donation"), [myTx]);
+  const myDonations = useMemo(
+    () =>
+      myTxDonationsOnly.filter(
+        (t) => (t.actionType || "").toLowerCase().includes("donation")
+      ),
+    [myTxDonationsOnly]
+  );
 
   const summary = useMemo(() => {
     const donated = myDonations.reduce(
@@ -100,15 +124,6 @@ export default function DonorActivity({ contract, account }) {
           Wallet: {truncate(account)}
         </div>
       </div>
-
-      {error && (
-        <div className="alert-card alert-card-amber">
-          <div>
-            <div className="alert-title">Could not load</div>
-            <div className="alert-desc">{error}</div>
-          </div>
-        </div>
-      )}
 
       {loading ? (
         <div className="skeleton" style={{ height: 220 }} />
@@ -146,7 +161,7 @@ export default function DonorActivity({ contract, account }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {myTx.map((t) => {
+                  {myTxDonationsOnly.map((t) => {
                     const cid = Number(t.campaignId);
                     const c = campaignById.get(cid);
                     const disaster = c ? DISASTER_TYPES[Number(c.disasterType)] : "—";
@@ -166,7 +181,7 @@ export default function DonorActivity({ contract, account }) {
                       </tr>
                     );
                   })}
-                  {myTx.length === 0 && (
+                  {myTxDonationsOnly.length === 0 && (
                     <tr>
                       <td colSpan="6" style={{ color: "var(--text-muted)" }}>
                         No activity yet.

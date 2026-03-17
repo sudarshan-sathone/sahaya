@@ -40,6 +40,8 @@ contract ReliefPool {
         address createdBy;
         uint256 beneficiaryCount;
         uint256 redeemedCount;
+        string description;
+        string imageURL;
     }
 
     struct NGO {
@@ -88,6 +90,7 @@ contract ReliefPool {
     }
 
     address public admin;
+    address public verifier;
     uint256 public campaignCount;
     uint256 public beneficiaryCount;
     uint256 public ngoCount;
@@ -110,6 +113,11 @@ contract ReliefPool {
 
     modifier onlyAdmin() {
         require(msg.sender == admin, "Only admin");
+        _;
+    }
+
+    modifier onlyVerifier() {
+        require(msg.sender == verifier, "Only verifier");
         _;
     }
 
@@ -193,6 +201,11 @@ contract ReliefPool {
         admin = msg.sender;
     }
 
+    function setVerifier(address _verifier) external onlyAdmin {
+        require(_verifier != address(0), "Invalid address");
+        verifier = _verifier;
+    }
+
     function registerNGO(
         address wallet,
         string memory name,
@@ -239,7 +252,9 @@ contract ReliefPool {
         DisasterType dtype,
         uint256 targetAmount,
         uint256 expiryDays,
-        string memory documentHash
+        string memory documentHash,
+        string memory description,
+        string memory imageURL
     ) external onlyAdmin {
         campaignCount++;
 
@@ -258,11 +273,15 @@ contract ReliefPool {
             documentHash: documentHash,
             createdBy: msg.sender,
             beneficiaryCount: 0,
-            redeemedCount: 0
+            redeemedCount: 0,
+            description: "",
+            imageURL: ""
         });
 
         campaigns[campaignCount] = campaign;
-        allCampaignsArray.push(campaign);
+        campaigns[campaignCount].description = description;
+        campaigns[campaignCount].imageURL = imageURL;
+        allCampaignsArray.push(campaigns[campaignCount]);
 
         _logTransaction(campaignCount, msg.sender, "campaign_created", 0);
 
@@ -271,7 +290,7 @@ contract ReliefPool {
 
     function verifyCampaign(uint256 campaignId)
         external
-        onlyAdmin
+        onlyVerifier
         campaignExists(campaignId)
     {
         Campaign storage campaign = campaigns[campaignId];

@@ -6,6 +6,8 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const VERIFIER_ADDRESS = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+
 async function main() {
   const { ethers, network } = hre;
 
@@ -32,11 +34,19 @@ async function main() {
     );
   }
 
+  // Set verifier automatically after deploy
+  if (networkName === "localhost" || networkName === "hardhat") {
+    const setVerifierTx = await reliefPool.setVerifier(VERIFIER_ADDRESS);
+    await setVerifierTx.wait();
+    console.log("  Verifier set to:", VERIFIER_ADDRESS);
+  }
+
   const outputPath = path.join(__dirname, "..", "deployedAddress.json");
 
   const payload = {
     address,
-    network: networkName
+    network: networkName,
+    verifier: VERIFIER_ADDRESS
   };
 
   fs.writeFileSync(outputPath, JSON.stringify(payload, null, 2), "utf8");

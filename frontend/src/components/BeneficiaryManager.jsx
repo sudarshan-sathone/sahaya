@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
+import toast from "react-hot-toast";
 
 export default function BeneficiaryManager({ contract, account }) {
   const [demoMode, setDemoMode] = useState(true);
@@ -23,8 +24,6 @@ export default function BeneficiaryManager({ contract, account }) {
     useState("");
   const [beneficiaries, setBeneficiaries] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [message, setMessage] = useState(null);
   const [connectedNgo, setConnectedNgo] = useState(null);
 
   const getLocalRpcProvider = () => {
@@ -82,17 +81,16 @@ export default function BeneficiaryManager({ contract, account }) {
   const registerBeneficiaryDemo = async (e) => {
     e.preventDefault();
     if (!contract) {
-      setError("Connect as admin first (MetaMask).");
+      toast.error("Please connect your wallet first");
       return;
     }
     if (!ngoPrivateKey) {
-      setError("Paste NGO private key for Demo Mode.");
+      toast.error("Paste NGO private key for Demo Mode.");
       return;
     }
     try {
       setLoading(true);
-      setError(null);
-      setMessage(null);
+      const toastId = toast.loading("Waiting for confirmation...");
 
       const provider = getLocalRpcProvider();
       const ngoWallet = new ethers.Wallet(ngoPrivateKey, provider);
@@ -106,19 +104,28 @@ export default function BeneficiaryManager({ contract, account }) {
       );
       const receipt = await tx.wait();
 
-      setMessage(
-        `Beneficiary registered (Demo Mode, NGO signer). Tx ${receipt.hash.slice(
-          0,
-          10
-        )}...`
+      const ev = receipt.logs
+        .map((log) => {
+          try {
+            return contract.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find((p) => p && p.name === "BeneficiaryRegistered");
+
+      const idx = ev ? Number(ev.args.beneficiaryIndex) : null;
+      toast.success(
+        `Beneficiary registered at index [${idx ?? "X"}].`,
+        { id: toastId }
       );
       setAadhaar("");
       setPincode("");
     } catch (e) {
       console.error(e);
-      setError(
-        e.message ||
-          "Failed to register beneficiary (Demo Mode). Make sure NGO is Activated by admin."
+      const message = e?.reason || e?.message || "Transaction failed";
+      toast.error(
+        message.length > 80 ? message.slice(0, 80) + "..." : message
       );
     } finally {
       setLoading(false);
@@ -128,36 +135,32 @@ export default function BeneficiaryManager({ contract, account }) {
   const redeemOtpDemo = async (e) => {
     e.preventDefault();
     if (!contract) {
-      setError("Connect as admin first (MetaMask).");
+      toast.error("Please connect your wallet first");
       return;
     }
     if (!vendorPrivateKey) {
-      setError("Paste vendor private key for Demo Mode.");
+      toast.error("Paste vendor private key for Demo Mode.");
       return;
     }
     try {
       setLoading(true);
-      setError(null);
-      setMessage(null);
+      const toastId = toast.loading("Waiting for confirmation...");
 
       const provider = getLocalRpcProvider();
       const vendorWallet = new ethers.Wallet(vendorPrivateKey, provider);
       const vendorContract = contract.connect(vendorWallet);
 
       const tx = await vendorContract.redeemOTP(Number(demoOtp));
-      const receipt = await tx.wait();
-      setMessage(
-        `OTP redeemed (Demo Mode, vendor signer). Tx ${receipt.hash.slice(
-          0,
-          10
-        )}...`
-      );
+      await tx.wait();
+      toast.success("OTP redeemed. Funds transferred to vendor wallet.", {
+        id: toastId
+      });
       setDemoOtp("");
     } catch (e) {
       console.error(e);
-      setError(
-        e.message ||
-          "Failed to redeem OTP (Demo Mode). Make sure vendor is whitelisted."
+      const message = e?.reason || e?.message || "Transaction failed";
+      toast.error(
+        message.length > 80 ? message.slice(0, 80) + "..." : message
       );
     } finally {
       setLoading(false);
@@ -167,25 +170,24 @@ export default function BeneficiaryManager({ contract, account }) {
   const registerBeneficiary = async (e) => {
     e.preventDefault();
     if (!contract) {
-      setError("Connect as NGO wallet first.");
+      toast.error("Please connect your wallet first");
       return;
     }
     if (connectedNgo && connectedNgo.exists && connectedNgo.status !== 1) {
-      setError(
+      toast.error(
         "This wallet is an NGO but not Active. Ask admin to Activate it first."
       );
       return;
     }
     if (connectedNgo && connectedNgo.exists === false) {
-      setError(
+      toast.error(
         "This wallet is not registered as an NGO. Switch to the NGO wallet you registered, or register it in NGO Management."
       );
       return;
     }
     try {
       setLoading(true);
-      setError(null);
-      setMessage(null);
+      const toastId = toast.loading("Waiting for confirmation...");
       const hash = ethers.keccak256(ethers.toUtf8Bytes(aadhaar));
       const tx = await contract.registerBeneficiary(
         Number(regCampaignId),
@@ -193,18 +195,30 @@ export default function BeneficiaryManager({ contract, account }) {
         pincode
       );
       const receipt = await tx.wait();
-      const txHash = receipt.hash;
-      setMessage(
-        `Beneficiary registered. Tx ${txHash.slice(
-          0,
-          10
-        )}... Note the index from getBeneficiaries().`
+
+      const ev = receipt.logs
+        .map((log) => {
+          try {
+            return contract.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find((p) => p && p.name === "BeneficiaryRegistered");
+
+      const idx = ev ? Number(ev.args.beneficiaryIndex) : null;
+      toast.success(
+        `Beneficiary registered at index [${idx ?? "X"}].`,
+        { id: toastId }
       );
       setAadhaar("");
       setPincode("");
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to register beneficiary");
+      const message = e?.reason || e?.message || "Transaction failed";
+      toast.error(
+        message.length > 80 ? message.slice(0, 80) + "..." : message
+      );
     } finally {
       setLoading(false);
     }
@@ -213,25 +227,25 @@ export default function BeneficiaryManager({ contract, account }) {
   const approve = async (e) => {
     e.preventDefault();
     if (!contract) {
-      setError("Connect as admin first.");
+      toast.error("Please connect your wallet first");
       return;
     }
     try {
       setLoading(true);
-      setError(null);
-      setMessage(null);
+      const toastId = toast.loading("Waiting for confirmation...");
       const tx = await contract.approveBeneficiary(
         Number(approveCampaignId),
         Number(beneficiaryIndex),
         ethers.parseEther(allocationEth || "0")
       );
-      const receipt = await tx.wait();
-      setMessage(
-        `Beneficiary approved. Tx ${receipt.hash.slice(0, 10)}...`
-      );
+      await tx.wait();
+      toast.success("Beneficiary approved with allocation.", { id: toastId });
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to approve beneficiary");
+      const message = e?.reason || e?.message || "Transaction failed";
+      toast.error(
+        message.length > 80 ? message.slice(0, 80) + "..." : message
+      );
     } finally {
       setLoading(false);
     }
@@ -240,13 +254,12 @@ export default function BeneficiaryManager({ contract, account }) {
   const issueOtp = async (e) => {
     e.preventDefault();
     if (!contract) {
-      setError("Connect as admin first.");
+      toast.error("Please connect your wallet first");
       return;
     }
     try {
       setLoading(true);
-      setError(null);
-      setMessage(null);
+      const toastId = toast.loading("Waiting for confirmation...");
       setIssuedOtp(null);
       const tx = await contract.issueOTP(
         Number(otpCampaignId),
@@ -267,20 +280,16 @@ export default function BeneficiaryManager({ contract, account }) {
       if (otpEvent) {
         const otp = Number(otpEvent.args.otp);
         setIssuedOtp(otp);
-        setMessage(
-          `OTP issued: ${otp}. Tx ${receipt.hash.slice(0, 10)}...`
-        );
+        toast.success(`OTP issued successfully. Number: ${otp}`, { id: toastId });
       } else {
-        setMessage(
-          `OTP issued. Tx ${receipt.hash.slice(
-            0,
-            10
-          )}... (could not parse event)`
-        );
+        toast.success("OTP issued successfully. Number: [OTP]", { id: toastId });
       }
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to issue OTP");
+      const message = e?.reason || e?.message || "Transaction failed";
+      toast.error(
+        message.length > 80 ? message.slice(0, 80) + "..." : message
+      );
     } finally {
       setLoading(false);
     }
@@ -289,22 +298,22 @@ export default function BeneficiaryManager({ contract, account }) {
   const whitelistVendor = async (e) => {
     e.preventDefault();
     if (!contract) {
-      setError("Connect as admin first.");
+      toast.error("Please connect your wallet first");
       return;
     }
     try {
       setLoading(true);
-      setError(null);
-      setMessage(null);
+      const toastId = toast.loading("Waiting for confirmation...");
       const tx = await contract.whitelistVendor(vendorAddress);
-      const receipt = await tx.wait();
-      setMessage(
-        `Vendor whitelisted. Tx ${receipt.hash.slice(0, 10)}...`
-      );
+      await tx.wait();
+      toast.success("Vendor whitelisted successfully.", { id: toastId });
       setVendorAddress("");
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to whitelist vendor");
+      const message = e?.reason || e?.message || "Transaction failed";
+      toast.error(
+        message.length > 80 ? message.slice(0, 80) + "..." : message
+      );
     } finally {
       setLoading(false);
     }
@@ -314,14 +323,13 @@ export default function BeneficiaryManager({ contract, account }) {
     if (!contract) return;
     try {
       setLoading(true);
-      setError(null);
       const list = await contract.getBeneficiaries(
         Number(beneficiariesCampaignId)
       );
       setBeneficiaries(list);
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to load beneficiaries");
+      toast.error("Failed to load data. Check your connection.");
     } finally {
       setLoading(false);
     }
@@ -336,9 +344,6 @@ export default function BeneficiaryManager({ contract, account }) {
   return (
     <section className="card">
       <h2>Beneficiary and OTP Management</h2>
-
-      {error && <div className="alert alert-error">{error}</div>}
-      {message && <div className="alert alert-success">{message}</div>}
 
       <div className="card-header">
         <div className="muted-text">

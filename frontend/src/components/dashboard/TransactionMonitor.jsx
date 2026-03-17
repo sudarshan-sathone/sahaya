@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
+import toast from "react-hot-toast";
 
 function truncate(addr) {
   if (!addr) return "—";
@@ -33,13 +34,11 @@ export default function TransactionMonitor({ contract }) {
   const [lastRefreshed, setLastRefreshed] = useState(null);
   const [flags, setFlags] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
 
   const fetchTx = async () => {
     if (!contract) return;
     try {
-      setError(null);
       const txs = filterCampaignId
         ? await contract.getCampaignTransactions(Number(filterCampaignId))
         : await contract.getAllTransactions();
@@ -47,7 +46,7 @@ export default function TransactionMonitor({ contract }) {
       setLastRefreshed(new Date());
     } catch (e) {
       console.error(e);
-      setError(e.message || "Failed to load transactions");
+      toast.error("Failed to load data. Check your connection.");
     } finally {
       setLoading(false);
     }
@@ -247,15 +246,6 @@ export default function TransactionMonitor({ contract }) {
           </div>
         </div>
       </div>
-
-      {error && (
-        <div className="alert-card alert-card-amber">
-          <div>
-            <div className="alert-title">Monitor error</div>
-            <div className="alert-desc">{error}</div>
-          </div>
-        </div>
-      )}
 
       <div className="dash-card" style={{ padding: 18, marginBottom: 16 }}>
         <div className="dash-card-header" style={{ marginBottom: 12 }}>

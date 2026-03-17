@@ -106,7 +106,9 @@ describe("ReliefPool", function () {
         0, // Flood
         ethers.parseEther("10"),
         30,
-        "QmDoc"
+        "QmDoc",
+        "",
+        ""
       );
 
       return { reliefPool, ngoWallet, donor };
@@ -174,7 +176,9 @@ describe("ReliefPool", function () {
         1,
         ethers.parseEther("5"),
         10,
-        "DocHash123"
+        "DocHash123",
+        "",
+        ""
       );
 
       const campaign = await reliefPool.getCampaign(1);
@@ -189,7 +193,9 @@ describe("ReliefPool", function () {
         1,
         ethers.parseEther("5"),
         10,
-        "DocHash123"
+        "DocHash123",
+        "",
+        ""
       );
       await reliefPool.verifyCampaign(1);
 
@@ -215,7 +221,9 @@ describe("ReliefPool", function () {
         0,
         ethers.parseEther("10"),
         30,
-        "QmDoc"
+        "QmDoc",
+        "",
+        ""
       );
       await reliefPool.verifyCampaign(1);
 
@@ -314,7 +322,9 @@ describe("ReliefPool", function () {
         0,
         ethers.parseEther("10"),
         30,
-        "QmDoc"
+        "QmDoc",
+        "",
+        ""
       );
       await reliefPool.verifyCampaign(1);
 
@@ -412,14 +422,18 @@ describe("ReliefPool", function () {
         0,
         ethers.parseEther("10"),
         30,
-        "QmDoc"
+        "QmDoc",
+        "",
+        ""
       );
       await reliefPool.createCampaign(
         "Earthquake Relief",
         1,
         ethers.parseEther("20"),
         60,
-        "QmDoc2"
+        "QmDoc2",
+        "",
+        ""
       );
 
       await reliefPool.verifyCampaign(1);

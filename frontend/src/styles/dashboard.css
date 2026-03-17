@@ -364,6 +364,35 @@
   gap: 18px;
 }
 
+.dash-internal-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.dash-internal-tab {
+  padding: 10px 22px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.15s;
+}
+
+.dash-internal-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--blue);
+}
+
+.dash-internal-tab:hover {
+  color: var(--text-primary);
+}
+
 .skeleton {
   background: rgba(255, 255, 255, 0.06);
   border-radius: 10px;
